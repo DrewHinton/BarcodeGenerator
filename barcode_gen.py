@@ -7,6 +7,44 @@ import sys
 import os
 import subprocess
     
+
+def is_integer(n):
+    try:
+        float(n)
+    except ValueError:
+        return False
+    else:
+        return float(n).is_integer()
+
+def getCopies(last):
+    copies = 0
+
+    # x at the end variable copies
+    if(last[-1] == 'x'): # x at the very end
+        if(is_integer(last[-3:-1])): # x at very end, but 2 digits before it [##]x
+            copies = int(last[-3:-1])
+        elif(last[-2].isdigit()): # x at end, but 1 digit before it. e.g. 5x
+            copies = int(last[-2]) # get [5]x
+
+    # double digit copies
+    elif(len(last) > 1 and last[-3] == 'x'): # searches for: x[##]
+        if(is_integer(last[-2:])):
+            copies = int(last[-2:])
+
+    elif(len(last) == 2 and is_integer(last[-2:])): # searches for: [##] without an x
+        copies = int(last[-2:])
+
+    # single digit copies
+    elif(len(last) > 1 and last[-2] == 'x'): # x before the digit like x5
+        if(last[-1].isdigit()):
+            copies = int(last[-1])  # get last digit x[5]
+
+    elif(len(last) == 1 and last[-1].isdigit()): # no x but is digit, 
+        copies = int(last[-1])
+
+
+    return copies
+
 def run(filename, title, item_code, OVERRIDE_COPIES):
 
     tmpfilename = "_tmp_bc_args.txt"
@@ -56,16 +94,10 @@ def run(filename, title, item_code, OVERRIDE_COPIES):
             no_copies = False
             copies = 0
 
-            if(last[-1] == 'x'):
-                copies = int(last[-2])
+            copies = getCopies(last)
 
-            elif(len(last) > 1 and last[-2] == 'x'):
-                copies = int(last[-1])
 
-            elif(len(last) == 1 and last[-1].isdigit()):
-                copies = int(last[-1])
-
-            else:
+            if copies == 0:
                 no_copies = True
 
 
@@ -94,7 +126,7 @@ def run(filename, title, item_code, OVERRIDE_COPIES):
     infile.close()
     outfile.close()
 
-    # call cmd line to start up msword
+    # call cmd line to start up msword -- i don't use the result code atm. still call it.
     result = subprocess.run(["winword", "/mbarcodegen", "barcode generator.docm"])
 
     os.remove(tmpfilename)
