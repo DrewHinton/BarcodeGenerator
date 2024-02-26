@@ -16,36 +16,25 @@ def is_integer(n):
     else:
         return float(n).is_integer()
 
-def getCopies(last):
+def getCopies(qty):
     copies = 0
 
-    # x at the end variable copies
-    if(last[-1] == 'x'): # x at the very end
-        if(is_integer(last[-3:-1])): # x at very end, but 2 digits before it [##]x
-            copies = int(last[-3:-1])
-        elif(last[-2].isdigit()): # x at end, but 1 digit before it. e.g. 5x
-            copies = int(last[-2]) # get [5]x
+    if(qty[-1] == 'x'): # x at the very end
+        if(is_integer(qty[:-1])):
+            copies = int(qty[:-1])
 
-    # double digit copies
-    elif(len(last) > 1 and last[-3] == 'x'): # searches for: x[##]
-        if(is_integer(last[-2:])):
-            copies = int(last[-2:])
+    elif(qty[0] == 'x'): # x at the beginning
+        if(is_integer(qty[1:])):
+            copies = int(qty[1:])
 
-    elif(len(last) == 2 and is_integer(last[-2:])): # searches for: [##] without an x
-        copies = int(last[-2:])
+    elif(is_integer(qty)):
+        copies = int(qty)
 
-    # single digit copies
-    elif(len(last) > 1 and last[-2] == 'x'): # x before the digit like x5
-        if(last[-1].isdigit()):
-            copies = int(last[-1])  # get last digit x[5]
-
-    elif(len(last) == 1 and last[-1].isdigit()): # no x but is digit, 
-        copies = int(last[-1])
-
+    # no else for final string in the split does not need to be quantity. "mens tops" for example.
 
     return copies
 
-def run(filename, title, item_code, OVERRIDE_COPIES):
+def run(filename, title, item_code, OVERRIDE_COPIES, start_index, orientation):
 
     tmpfilename = "_tmp_bc_args.txt"
 
@@ -73,8 +62,11 @@ def run(filename, title, item_code, OVERRIDE_COPIES):
     # header area
     output += "[HEADER START] ----------------------------------------\n"
 
+    # order matters here. startindex needs to be below itemcode
     output += "\ntitle=" + title
     output += "\nitemcode=" + str(item_code)
+    output += "\nstartindex=" + str(start_index)
+    output += "\norientation=" + orientation
     # output += "\ncwd=" + str(os.getcwd()) # cant pass cwd. bc_gen needs to know cwd to even read the tempfile
     
 
@@ -114,7 +106,17 @@ def run(filename, title, item_code, OVERRIDE_COPIES):
             elif (no_copies == False):
                 # getting into this block means that you will pull the end-numbers from each line.
                 # example allowed formats for end-numbers: 9, x9, 9x
-                count = range(copies)
+                
+                start_number = 0
+                # SPECIAL CASE ====== SET THE START NUMBER FOR YOUR BOXES. HARD OVERRIDE AND NOT SCALABLE
+                start_number = start_index - 1
+                count = range(start_number, start_number + copies)
+                # SPECIAL CASE ====== SET THE START NUMBER FOR YOUR BOXES. HARD OVERRIDE AND NOT SCALABLE
+                # comment out the 2 lines for default behavior.
+
+                if start_number == 0:
+                    count = range(copies)
+
                 for i in count:
                     output += call + " " + str(i) + '\n'
             else:
@@ -134,7 +136,8 @@ def run(filename, title, item_code, OVERRIDE_COPIES):
 def process_args(argv, ref_args):
     error_badargs_msg = \
         '\n\tPlease provide arguments >> [! = required] [? = optional] <<\n\n\t' \
-        'Permitted format: python [!filename] [!title=X] [!itemscode=X] [?copies=X]\n\n\t' \
+        'Permitted format: python [!filename] [!title=X] [!itemscode=0-9] [?copies=#]\n\n\t' \
+        '                         [?startindex=#] [?orientation=L|P] \n\n\t' \
         'e.g: > python items.txt itemscode=5 title="men\'s clothing"'
 
 
@@ -168,6 +171,12 @@ def process_args(argv, ref_args):
 
             if(arg[ : arg.index('=')] == 'copies'):
                 ref_args[NUM_COPIES] = int(arg[arg.index('=') + 1: ])
+
+            if(arg[ : arg.index('=')] == 'startindex'):
+                ref_args[START_INDEX] = int(arg[arg.index('=') + 1: ])
+
+            if(arg[ : arg.index('=')] == 'orientation'):
+                ref_args[ORIENTATION] = arg[arg.index('=') + 1: ]
         
     else:
         print(error_badargs_msg)
@@ -198,17 +207,23 @@ if __name__ == "__main__":
     # title = something like "womens clothing"
     # itemscode = 0-9
     # copies = overrides the numbers next to each item and generates x number of every item.
+    # startindex
     
     FILENAME = 0
     TITLE = 1
     ITEM_CODE = 2
     NUM_COPIES = 3
+    START_INDEX = 4
+    ORIENTATION = 5
 
+    # defaults
     filename = ''
     title = ''
     item_code = -1
     num_copies = -1
-    ref_args = [filename, title, item_code, num_copies]
+    start_index = 0
+    orientation = 'L'
+    ref_args = [filename, title, item_code, num_copies, start_index, orientation]
 
     safe = process_args(sys.argv, ref_args)
     
@@ -217,4 +232,16 @@ if __name__ == "__main__":
     # print(safe)
 
     if(safe):
-        run(ref_args[FILENAME], ref_args[TITLE], ref_args[ITEM_CODE], ref_args[NUM_COPIES])
+        run(ref_args[FILENAME], ref_args[TITLE], ref_args[ITEM_CODE], ref_args[NUM_COPIES], ref_args[START_INDEX], ref_args[ORIENTATION])
+
+
+# Next tasks:
+# 1. Fix bug where final numbers cause crash.
+# 2. Add start-point feature.
+# 3. 
+#
+#
+#
+#
+#
+        
